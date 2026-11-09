@@ -2,19 +2,19 @@
   author = {Chen, Tianqi and Guestrin, Carlos},
   title = {{XGBoost}: A Scalable Tree Boosting System},
   booktitle = {Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining},
-  year = {2016}, pages = {785--794}
+  year = {2016}, pages = {785--794}, doi = {10.1145/2939672.2939785}
 }
 @inproceedings{grinsztajn2022why,
   author = {Grinsztajn, L{\'e}o and Oyallon, Edouard and Varoquaux, Ga{\"e}l},
   title = {Why do tree-based models still outperform deep learning on typical tabular data?},
   booktitle = {Advances in Neural Information Processing Systems 35, Datasets and Benchmarks Track},
-  year = {2022}
+  year = {2022}, url = {https://papers.nips.cc/paper_files/paper/2022/hash/0378c7692da36807bdec87ab043cdadc-Abstract-Datasets_and_Benchmarks.html}
 }
 @inproceedings{mcelfresh2023when,
   author = {McElfresh, Duncan and Khandagale, Sujay and Valverde, Jonathan and C., Vishak Prasad and Ramakrishnan, Ganesh and Goldblum, Micah and White, Colin},
   title = {When Do Neural Nets Outperform Boosted Trees on Tabular Data?},
-  booktitle = {Advances in Neural Information Processing Systems 36},
-  year = {2023}
+  booktitle = {Advances in Neural Information Processing Systems 36, Datasets and Benchmarks Track},
+  year = {2023}, url = {https://arxiv.org/abs/2305.02997}
 }
 @inproceedings{muller2022transformers,
   author = {M{\"u}ller, Samuel and Hollmann, Noah and Pineda Arango, Sebastian and Grabocka, Josif and Hutter, Frank},
@@ -31,16 +31,75 @@
 @article{hollmann2025accurate,
   author = {Hollmann, Noah and M{\"u}ller, Samuel and Purucker, Lennart and Krishnakumar, Arjun and K{\"o}rfer, Max and Hoo, Shi Bin and Schirrmeister, Robin Tibor and Hutter, Frank},
   title = {Accurate predictions on small data with a tabular foundation model},
-  journal = {Nature}, volume = {637}, pages = {319--326}, year = {2025}
+  journal = {Nature}, volume = {637}, pages = {319--326}, year = {2025}, doi = {10.1038/s41586-024-08328-6}
 }
 @inproceedings{qu2025tabicl,
   author = {Qu, Jingang and Holzm{\"u}ller, David and Varoquaux, Ga{\"e}l and Le Morvan, Marine},
   title = {{TabICL}: A Tabular Foundation Model for In-Context Learning on Large Data},
-  booktitle = {International Conference on Machine Learning},
+  booktitle = {Proceedings of the 42nd International Conference on Machine Learning, PMLR 267},
   year = {2025}
 }
-@article{ma2024tabdpt,
-  author = {Ma, Junwei and Thomas, Valentin and Hosseinzadeh, Rasa and Kamkari, Hamidreza and Labach, Alex and Cresswell, Jesse C. and Golestan, Keyvan and Yu, Guangwei and Volkovs, Maksims and Caterini, Anthony L.},
-  title = {{TabDPT}: Scaling Tabular Foundation Models},
-  journal = {arXiv preprint arXiv:2410.18164}, year = {2024}
+@inproceedings{ma2025tabdpt,
+  author = {Ma, Junwei and Thomas, Valentin and Hosseinzadeh, Rasa and Labach, Alex and Cresswell, Jesse C. and Golestan, Keyvan and Yu, Guangwei and Caterini, Anthony L. and Volkovs, Maksims},
+  title = {{TabDPT}: Scaling Tabular Foundation Models on Real Data},
+  booktitle = {Advances in Neural Information Processing Systems 38},
+  year = {2025}, url = {https://papers.nips.cc/paper_files/paper/2025/hash/fc0e3f908a2116ba529ad0a1530a3675-Abstract-Conference.html}
+}
+@article{vanschoren2014openml,
+  author = {Vanschoren, Joaquin and van Rijn, Jan N. and Bischl, Bernd and Torgo, Lu{\'i}s},
+  title = {{OpenML}: networked science in machine learning},
+  journal = {SIGKDD Explorations}, volume = {15}, number = {2}, pages = {49--60}, year = {2014}, doi = {10.1145/2641190.2641198}
+}
+@misc{yeh2009uci,
+  author = {Yeh, I-Cheng},
+  title = {Default of Credit Card Clients},
+  howpublished = {UCI Machine Learning Repository, dataset 350, \url{https://doi.org/10.24432/C55S3H}},
+  year = {2009}
+}
+@article{yeh2009comparisons,
+  author = {Yeh, I-Cheng and Lien, Che-hui},
+  title = {The comparisons of data mining techniques for the predictive accuracy of probability of default of credit card clients},
+  journal = {Expert Systems with Applications}, volume = {36}, number = {2}, pages = {2473--2480}, year = {2009}, doi = {10.1016/j.eswa.2007.12.020}
+}
+@misc{kaggle2011gmsc,
+  author = {{Kaggle}},
+  title = {{Give Me Some Credit}},
+  howpublished = {Prediction competition, \url{https://www.kaggle.com/c/GiveMeSomeCredit}; copy used: OpenML dataset 46929 (TabArena curation), accessed 2026-11-09},
+  year = {2011}
+}
+@misc{ltfs2019finhack,
+  author = {{L\&T Financial Services} and {Analytics Vidhya}},
+  title = {{LTFS} Data Science {FinHack}: vehicle loan default prediction},
+  howpublished = {Hackathon dataset, \url{https://datahack.analyticsvidhya.com/contest/ltfs-datascience-finhack-an-online-hackathon/}; copy used: OpenML dataset 46430, accessed 2026-11-09},
+  year = {2019}
+}
+@book{baesens2016credit,
+  author = {Baesens, Bart and Roesch, Daniel and Scheule, Harald},
+  title = {Credit Risk Analytics: Measurement Techniques, Applications, and Examples in {SAS}},
+  publisher = {Wiley}, year = {2016},
+  note = {The HMEQ home equity dataset accompanies the book at \url{http://www.creditriskanalytics.net}; copy used: OpenML dataset 43337 (CC0), accessed 2026-11-09}
+}
+@misc{lendingclub2019data,
+  author = {{LendingClub Corporation}},
+  title = {Loan data, 2007 to {2018Q4}},
+  howpublished = {Public loan statistics files, discontinued by the company in 2020; copies used: OpenML dataset 43729 (CC0, 2007 to 2015 subset) and the Hugging Face mirror \url{https://huggingface.co/datasets/codesignal/lending-club-loan-accepted}, accessed 2026-11-09},
+  year = {2019}
+}
+@misc{he2021ppdai,
+  author = {He, Hongliang},
+  title = {{PPDaiData}},
+  howpublished = {figshare dataset, CC BY 4.0, \url{https://doi.org/10.6084/m9.figshare.13573856}},
+  year = {2021}
+}
+@misc{prosper2014udacity,
+  author = {{Prosper Marketplace}},
+  title = {Prosper loan data, 2005 to 2014},
+  howpublished = {Copy distributed by Udacity for course ud651, \url{https://s3.amazonaws.com/udacity-hosted-downloads/ud651/prosperLoanData.csv}, no stated licence, accessed 2026-11-09},
+  year = {2014}
+}
+@misc{openml2022tvs,
+  author = {{OpenML contributors}},
+  title = {{TVS\_Loan\_Default}},
+  howpublished = {OpenML dataset 43743 (CC0), uploaded 2022-03-24, TVS Credit cross-sell personal loans, India; accessed 2026-11-09},
+  year = {2022}
 }

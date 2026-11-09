@@ -31,6 +31,12 @@ clf = ThinPFNClassifier().fit(X_train, y_train)   # 200 to a few thousand labell
 p = clf.predict_proba(X_new)[:, 1]
 ```
 
+**Two meanings of "training".** `fit` here does no training: it stores the labelled rows as the context (like
+k-nearest-neighbours' `fit`), and `predict_proba` scores new rows in one forward pass with the 25.6M weights unchanged.
+The method is called `fit` only to honour the scikit-learn contract (pipelines, `cross_val_score`, `clone`). The one
+training that ever happens is the pre-training of the weights on synthetic tables, done once by us in six GPU-hours and
+reproducible with [`thinpfn/train.py`](thinpfn/train.py); a user never needs to run it.
+
 ## Contents
 
 - [Why this exists](#why-this-exists)
@@ -46,16 +52,17 @@ p = clf.predict_proba(X_new)[:, 1]
 
 ## Why this exists
 
-For a decade, credit, fraud and collections teams have scored tabular data with gradient-boosted trees, one model per
-portfolio, retrained every time a batch of outcomes arrives. Tabular foundation models change the unit of work: a
-network pre-trained once, on synthetic data, that treats a labelled table as a prompt. The labelled history is the
-context, the new applications are the query, and the prediction is the posterior of a prior the network has absorbed
-during pre-training. No gradient steps happen at decision time, so a new segment, a new product or a new country can be
-scored the day its first few hundred outcomes are known, and every confirmed outcome enters the next decision as soon as
-it is appended to the context.
+In the credit, fraud and collections teams we have worked with, tabular data is scored with gradient-boosted trees,
+one model per portfolio, retrained every time a batch of outcomes arrives. Tabular foundation models change the unit of
+work: a network pre-trained once, on synthetic data, that treats a labelled table as a prompt. The labelled history is
+the context, the new applications are the query, and the prediction is the posterior of a prior the network has
+absorbed during pre-training. No gradient steps happen at decision time, so in principle a new segment, a new product or
+a new country can be scored as soon as its first few hundred outcomes are known, and a confirmed outcome can enter the
+next decision as soon as it is appended to the context (whether a lender's controls allow that cadence is a separate
+question this repository does not answer).
 
-The published models in this family (TabPFN, TabICL and their relatives) are trained with large compute budgets and
-released as weights. This repository asks a narrower question: how much of that capability can one person reproduce,
+The published models in this family (TabPFN, TabICL and their relatives) were pre-trained with budgets well beyond the
+six GPU-hours used here and are released as weights. This repository asks a narrower question: how much of that capability can one person reproduce,
 understand and own, with one desktop GPU and an evening of training, and does a prior that includes a credit ledger
 simulator buy anything on real portfolios? The answer, measured rather than argued, is in the next section.
 
@@ -241,6 +248,16 @@ taken as released. Ordinal codes for string columns are assigned on the whole so
 values), a transductive step that the sealed test inherits. TVS contains many identical feature rows across splits (1,919
 test rows match a training row exactly); the bootstrap unit is the row everywhere. Licences declared by a re-host do not
 override the original rights holder's terms; check them before any use beyond research.
+
+Source records (accessed 2026-11-09; exact URLs and SHA-256 of every raw file are in `books.py`):
+[Taiwan credit cards, UCI 350](https://doi.org/10.24432/C55S3H) (Yeh and Lien, 2009) ·
+[Give Me Some Credit, Kaggle 2011](https://www.kaggle.com/c/GiveMeSomeCredit) via [OpenML 46929](https://www.openml.org/d/46929) ·
+[L&T vehicle loans, LTFS FinHack 2019](https://datahack.analyticsvidhya.com/contest/ltfs-datascience-finhack-an-online-hackathon/) via [OpenML 46430](https://www.openml.org/d/46430) ·
+HMEQ from Baesens, Roesch and Scheule, *Credit Risk Analytics* (Wiley, 2016) via [OpenML 43337](https://www.openml.org/d/43337) ·
+LendingClub public loan files via [OpenML 43729](https://www.openml.org/d/43729) and the [Hugging Face mirror](https://huggingface.co/datasets/codesignal/lending-club-loan-accepted) ·
+[PPDaiData, figshare](https://doi.org/10.6084/m9.figshare.13573856) (He, 2021) ·
+[Prosper listings, Udacity copy](https://s3.amazonaws.com/udacity-hosted-downloads/ud651/prosperLoanData.csv) ·
+[TVS Credit, OpenML 43743](https://www.openml.org/d/43743).
 
 ## Limitations
 

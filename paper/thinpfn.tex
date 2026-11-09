@@ -6,7 +6,8 @@
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{url}
+\PassOptionsToPackage{hyphens}{url}\usepackage{url}
+\usepackage{xurl}
 \usepackage[numbers,sort&compress]{natbib}
 \usepackage[hidelinks]{hyperref}
 \usepackage{caption}
@@ -48,11 +49,12 @@ benchmark with split manifests, and the training recipe are released for non-com
 
 \section{Introduction}
 
-For more than a decade the working answer to a tabular prediction problem in credit, fraud or collections has been a
-gradient-boosted tree ensemble \citep{chen2016xgboost}, fitted per portfolio, tuned per portfolio, and refitted every
-time a batch of outcomes arrives. The reasons are good ones: boosted trees are cheap, fast, handle missing values and
-mixed types, and their explanations are accepted by model-risk functions. Benchmarks that compare them with neural
-networks on medium-sized tables keep finding them ahead or tied \citep{grinsztajn2022why,mcelfresh2023when}. The cost
+In our experience of credit scoring work, the working answer to a tabular prediction problem in credit, fraud or
+collections has been a gradient-boosted tree ensemble such as XGBoost \citep{chen2016xgboost}, fitted per portfolio,
+tuned per portfolio, and refitted every time a batch of outcomes arrives. The reasons are good ones: boosted trees are
+cheap, fast, handle missing values and mixed types, and the lenders we have worked with have found their explanation
+tooling acceptable to their model-risk functions. Benchmarks that compare them with neural networks on medium-sized
+tables keep finding them ahead or tied \citep{grinsztajn2022why,mcelfresh2023when}. The cost
 of this regime is not accuracy; it is the unit of work. Every new product, segment, country or partner needs its own
 model, its own validation cycle and its own retraining schedule, and the first months of a new portfolio, when a few
 hundred outcomes exist, are exactly when a dedicated model is least reliable.
@@ -60,12 +62,14 @@ hundred outcomes exist, are exactly when a dedicated model is least reliable.
 Tabular foundation models change the unit of work. A network is pre-trained once, on synthetic tables, to perform
 Bayesian prediction in context: the labelled rows of a new problem are the prompt, the unlabelled rows are the query,
 and the prediction is the posterior predictive of a prior the network has absorbed during pre-training
-\citep{muller2022transformers,hollmann2023tabpfn}. No gradient step happens at decision time. A new portfolio can be
-scored the day its first few hundred outcomes are known, and each confirmed outcome enters the next decision as soon as
-it is appended to the context. The second generation of these models \citep{hollmann2025accurate,qu2025tabicl} reaches
-or beats tuned boosting on standard benchmarks up to tens of thousands of rows.
+\citep{muller2022transformers,hollmann2023tabpfn}. No gradient step happens at decision time. In principle a new
+portfolio can be scored as soon as its first few hundred outcomes are known, and a confirmed outcome can enter the next
+decision as soon as it is appended to the context; whether a lender's controls allow that cadence is an operational
+question this paper does not study. The second generation of these models \citep{hollmann2025accurate,qu2025tabicl}
+reaches or beats tuned boosting on standard benchmarks up to tens of thousands of rows.
 
-The published models are trained with large compute budgets and released as weights. We ask a narrower and, for a
+The published models were pre-trained with budgets well beyond the six GPU-hours used here (their papers report the
+details \citep{hollmann2025accurate,qu2025tabicl}) and are released as weights. We ask a narrower and, for a
 practitioner, more useful question: how much of this capability can one person reproduce, understand and own, with one
 desktop GPU and a few hours of training, and does a prior built around the mechanics of credit buy anything on real
 portfolios? The question matters because ownership is the point. A team that can regenerate its prior, retrain its
@@ -90,18 +94,20 @@ tabular classification with a prior of random structural causal models (SCMs) an
 version \citep{hollmann2025accurate} added a per-cell architecture that attends across both rows and features, a richer
 prior, and support for regression and larger tables. TabICL \citep{qu2025tabicl} separates column embedding, row
 interaction and in-context learning into stages so that the in-context stage sees one token per row, which scales the
-approach to hundreds of thousands of rows. TabDPT \citep{ma2024tabdpt} pre-trains the same kind of network on real
+approach to hundreds of thousands of rows. TabDPT \citep{ma2025tabdpt} pre-trains the same kind of network on real
 tables instead of a synthetic prior.
 
-\paragraph{The ecosystem around them.} Three families of ``foundation'' approaches compete for the tabular problem in
-industry. Embedding approaches train a transformer to produce a vector per row and feed that vector to a conventional
-classifier; they keep the second model and its retraining. Relational foundation models operate over several linked
-tables at once and are strongest where the schema itself carries signal. Single-table in-context models, the family of
-TabPFN and TabICL, score directly from the labelled table and need no second model; they are the natural fit for a
-scoring team whose data is already a feature table with a label. ThinPFN belongs to the third family. Its practical
-promise is operational: one model per family of problems instead of per portfolio, decisions current to the latest
-confirmed outcome, and the same explanation tooling (reason codes, Shapley attribution, distillation into a monotone
-scorecard where regulation requires it) applied to the in-context model's scores.
+\paragraph{The ecosystem around them.} We find it useful to group the ``foundation'' approaches on offer for tabular
+data into three informal families; the grouping is ours, not a published taxonomy. Embedding approaches train a
+transformer to produce a vector per row and feed that vector to a conventional classifier; they keep the second model
+and its retraining. Relational approaches operate over several linked tables at once and are strongest where the schema
+itself carries signal. Single-table in-context models, the family of TabPFN and TabICL, score directly from the labelled
+table and need no second model; they are the natural fit for a scoring team whose data is already a feature table with
+a label. ThinPFN belongs to the third family. The operational case for it is a hypothesis rather than a measured result:
+one model per family of problems instead of per portfolio, and decisions that can be refreshed as outcomes arrive.
+Model-agnostic explanation methods (perturbation-based reason codes, Shapley attribution, distillation into a simpler
+surrogate) apply to any scorer and so to this one; we have not evaluated them on ThinPFN and make no claim about
+their adequacy for a given regulator.
 
 \paragraph{Why synthetic priors.} The prior is the only place where domain knowledge enters a PFN. A generic SCM prior
 encodes the belief that features are produced by sparse causal mechanisms with noise; it is agnostic about what the
@@ -214,6 +220,18 @@ fields, with fields observed after origination (payments received, recoveries, c
 step the sealed test inherits. TVS contains many identical feature rows across splits (1,919 of the test rows match a
 training row exactly); the bootstrap unit is the row everywhere. The repository ships the split manifests keyed to the
 rows of the public source files, whose hashes are recorded, and a preparation script that rebuilds every table.
+
+\paragraph{Data sources.} The eight source datasets, with the record each book was built from (all accessed
+2026-11-09; the repository records the exact URL and SHA-256 of every raw file). Taiwan credit cards: the UCI record
+\citep{yeh2009uci} of the data introduced by \citet{yeh2009comparisons}. Give Me Some Credit: the 2011 Kaggle
+competition \citep{kaggle2011gmsc}, read from its OpenML copy. L\&T vehicle loans: the 2019 LTFS FinHack data
+\citep{ltfs2019finhack}, read from OpenML. HMEQ: the home equity dataset that accompanies \citet{baesens2016credit},
+read from OpenML. LendingClub: the company's public loan files \citep{lendingclub2019data}, in two extracts (an OpenML
+2007 to 2015 subset for \texttt{us\_p2p}; the 2007 to 2018Q4 file, restricted to 2007 to 2015 vintages, for
+\texttt{lending\_club}). PPDai: the figshare release \citep{he2021ppdai}. Prosper: the Udacity copy of the listings file
+\citep{prosper2014udacity}. TVS Credit: the OpenML upload \citep{openml2022tvs}. OpenML copies are served by the platform
+of \citet{vanschoren2014openml}. Field selections, label definitions, split rules and the post-origination exclusions
+are ours and are stated per book in the repository; period and licence statements are those of the records cited.
 
 \begin{table*}[t]
 \centering\small
@@ -366,8 +384,8 @@ it trails TabPFN~v2 by three to four points and XGBoost by four to six points at
 validation splits that were read many times; the sealed test was read once, and the significant wins over TabPFN~v2 at
 $n=200$ shrank from five books on validation to three on test, which is the expected size of that selection effect. The
 released weights are one pre-training seed; variance across seeds has not been measured. The model is released for
-research and non-commercial use; automated decisions about people require, independently of the model, a fairness
-assessment, human review and the explanation tooling the lender's regulation demands.
+research and non-commercial use; a lender considering any automated decision about people must satisfy, independently
+of the model, whatever its own regulation requires of fairness assessment, human review and explanations.
 
 \section{Reproducibility}
 
@@ -377,8 +395,8 @@ the sealed-test script and its output, the figure script, tests, and a walkthrou
 that produced the released weights is one line; the benchmark is two. The sealed-test numbers, the inference study,
 the size comparison and the training log are in \texttt{benchmark/results/}; the other development findings are
 reported from the development record. A resumed training run restarts the synthetic streams, so only an uninterrupted
-run reproduces the released weights exactly. The datasets keep the terms stated at their sources; one (Prosper) has no
-stated licence and is used for evaluation only.
+run reproduces the released weights exactly. The datasets keep the terms stated at the records cited in the data-sources
+paragraph; one (Prosper) has no stated licence and is used for evaluation only.
 
 \bibliographystyle{plainnat}
 \bibliography{references}

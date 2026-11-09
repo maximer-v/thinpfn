@@ -36,7 +36,8 @@ inference recipe were frozen, with contexts of 200, 500 and 1,000 labelled rows 
 logistic regression, XGBoost tuned on the context, and TabPFN~v2. ThinPFN ties TabPFN~v2 on the ten-book mean
 (0.697 / 0.709 / 0.727 against 0.688 / 0.710 / 0.728 at the three context sizes), is ahead of it at the smallest
 context, beats tuned XGBoost in 23 of 30 cells (15 significantly, 2 significantly behind) and logistic regression in
-29 of 30. Its weakness is concentrated in one regime, strong nonlinear signal, where boosted trees and the larger model
+29 of 30. Without any recalibration its probabilities have the lowest calibration error of the four models on
+validation splits and are never worse than the base-rate forecast on any book. Its weakness is concentrated in one regime, strong nonlinear signal, where boosted trees and the larger model
 stay three to six points ahead at small contexts. Two inference-time choices made with fixed weights, quantile-normal inputs and an
 average over column permutations, are worth 0.022 AUC, more than any change to the prior we tried. Code, weights, the
 benchmark with split manifests, and the training recipe are released for non-commercial use.
@@ -336,12 +337,74 @@ development evidence below, where the gains from a deeper and longer-trained mod
 points to network capacity rather than to the prior; since that comparison changed depth and training budget together,
 capacity is the working hypothesis, not an established cause.
 
+\subsection{Probability quality}
+\label{sec:calibration}
+
+A credit score is consumed as a probability of default, so ranking is half of the question. After the sealed test we
+added a probability study with the same contexts and baselines, scored on the validation split of every book: the test
+split is not read a second time, and since the validation splits were used during development to choose the inference
+recipe by AUC, the study is descriptive and carries no pre-written claim. No model is recalibrated. We report the
+Kolmogorov-Smirnov statistic (KS), the Brier skill against the constant forecast of the context's default rate, and the
+expected calibration error over ten equal-count bins (ECE), each averaged over three seeds and then over the ten books
+(Table~\ref{tab:calibration}, Figure~\ref{fig:calibration}).
+
+\begin{table}[t]
+\centering\small
+\caption{Probability quality on validation splits, mean of ten books, no recalibration. Skill: Brier skill against the
+base-rate forecast. Last column: books where the model is worse than the base rate (negative skill).}
+\label{tab:calibration}
+\begin{tabular}{llcccc}
+\toprule
+$n$ & model & KS & skill & ECE & worse \\
+\midrule
+200 & ThinPFN & 0.315 & \textbf{0.088} & \textbf{0.025} & 0 \\
+ & TabPFN v2 & \textbf{0.321} & 0.073 & 0.032 & 2 \\
+ & XGBoost & 0.259 & 0.074 & 0.037 & 4 \\
+ & Logistic & 0.257 & $-0.023$ & 0.068 & 6 \\
+\midrule
+500 & ThinPFN & 0.339 & 0.104 & \textbf{0.023} & 0 \\
+ & TabPFN v2 & \textbf{0.351} & \textbf{0.113} & 0.029 & 0 \\
+ & XGBoost & 0.297 & 0.095 & 0.028 & 0 \\
+ & Logistic & 0.285 & 0.032 & 0.043 & 4 \\
+\midrule
+1000 & ThinPFN & 0.365 & 0.119 & \textbf{0.023} & 0 \\
+ & TabPFN v2 & \textbf{0.373} & \textbf{0.128} & 0.027 & 0 \\
+ & XGBoost & 0.340 & 0.120 & 0.024 & 0 \\
+ & Logistic & 0.307 & 0.071 & 0.032 & 1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure*}[t]
+\centering\includegraphics[width=0.97\textwidth]{calibration.pdf}
+\caption{Probability quality without recalibration (validation splits, ten books). Left: reliability at $n=500$, rows
+pooled over books and seeds, deciles of the predicted probability. Centre and right: expected calibration error and
+Brier skill against the base-rate forecast, mean of ten books.}
+\label{fig:calibration}
+\end{figure*}
+
+ThinPFN has the lowest mean calibration error at every context size, lower than TabPFN~v2 on nine of ten books at each
+$n$, and it is the only model with a positive Brier skill on every book at every $n$, including $n=200$, where
+TabPFN~v2 falls below the base rate on two books, XGBoost on four and logistic regression on six. TabPFN~v2 separates
+slightly better: it leads on mean KS at every $n$ and on mean Brier skill at $n=500$ and $n=1000$. Most of that Brier
+gap is us\_homeequity (0.338 against 0.451 at $n=500$), the book that carries the AUC losses; book by book ThinPFN has
+the higher skill in 20 of 30 cells. The predicted level is anchored on the context: the mean prediction of ThinPFN
+exceeds the observed default rate by about half a point on average (0.175 against 0.169), and on the out-of-time books
+part of the error of every model is the movement of the default rate between the context period and the scored period
+(LendingClub: 0.170 predicted, 0.147 observed), which no model can read from the context. These are means without
+intervals; the differences in calibration error are small and were not tested for significance.
+
+\paragraph{Latency.} One scoring call with the default eight column orders, 1,000 context rows and 2,000 query rows of
+20 features, takes 5.7~s on an Arm CPU limited to eight threads and 0.28~s on the desktop GPU used for pre-training; a
+single pass takes 0.75~s and 0.04~s. A single query against 1,000 context rows takes 1.0~s and 0.09~s with the
+ensemble, since every call reads the context again; a context and a query of 4,000 rows each take 29~s and 1.2~s.
+
 \subsection{What moved the result during development}
 
 Four findings from the validation splits, reported here because they are the transferable part of the work. The
 prior ablations were run at equal compute (3.3M model, 160k tables); the size comparison was not. The development
 record behind them (realism audit, leave-dataset-out runs, prior ablations) is summarised rather than released; the
-released result files are the sealed test, the inference study and the size comparison.
+released result files are the sealed test, the probability study, the inference study and the size comparison.
 
 \emph{Depth and compute.} With the same prior and the same inference recipe, a 3.3M model trained on 160k tables
 reaches 0.700 / 0.712 / 0.724 on the ten-book validation mean; the released 25.6M model on 1.02M tables reaches
@@ -383,7 +446,10 @@ context rows, where a tuned boosted model with all the data is the better tool. 
 it trails TabPFN~v2 by three to four points and XGBoost by four to six points at $n \le 500$. The inference recipe and the depth were chosen on
 validation splits that were read many times; the sealed test was read once, and the significant wins over TabPFN~v2 at
 $n=200$ shrank from five books on validation to three on test, which is the expected size of that selection effect. The
-released weights are one pre-training seed; variance across seeds has not been measured. The model is released for
+released weights are one pre-training seed; variance across seeds has not been measured. Predicted probabilities are
+anchored on the default rate of the context rows: a context sampled at a different rate than the scored population, or
+a shift of the default rate over time, moves the calibration and needs a correction outside the model, and the
+probability study of Section~\ref{sec:calibration} rests on validation splits, not on the sealed test. The model is released for
 research and non-commercial use; a lender considering any automated decision about people must satisfy, independently
 of the model, whatever its own regulation requires of fairness assessment, human review and explanations.
 
@@ -391,9 +457,10 @@ of the model, whatever its own regulation requires of fairness assessment, human
 
 The repository contains the package (prior, network, trainer, scikit-learn style front end), the released weights (fp16,
 51 MB), the benchmark with split manifests and a preparation script that rebuilds every book from its public source,
-the sealed-test script and its output, the figure script, tests, and a walkthrough notebook. The pre-training command
-that produced the released weights is one line; the benchmark is two. The sealed-test numbers, the inference study,
-the size comparison and the training log are in \texttt{benchmark/results/}; the other development findings are
+the sealed-test script and its output, the probability study and latency scripts with their outputs, the figure
+script, tests, and a walkthrough notebook. The pre-training command
+that produced the released weights is one line; the benchmark is two. The sealed-test numbers, the probability study, the latency table, the
+inference study, the size comparison and the training log are in \texttt{benchmark/results/}; the other development findings are
 reported from the development record. A resumed training run restarts the synthetic streams, so only an uninterrupted
 run reproduces the released weights exactly. The datasets keep the terms stated at the records cited in the data-sources
 paragraph; one (Prosper) has no stated licence and is used for evaluation only.

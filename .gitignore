@@ -10,3 +10,6 @@ paper/*.out
 paper/*.bbl
 paper/*.blg
 .pytest_cache/
+build/
+*.egg-info/
+dist/

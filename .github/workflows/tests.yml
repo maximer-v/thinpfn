@@ -1,0 +1,39 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install (CPU build of PyTorch)
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev]"
+      - name: Tests
+        run: python -m pytest -q tests
+  install-from-git:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Non-editable install ships the weights
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install .
+          cd /tmp && python -c "import numpy as np; from thinpfn import ThinPFNClassifier; X = np.random.default_rng(0).standard_normal((120, 4)); y = (X[:, 0] > 0).astype(int); print(ThinPFNClassifier(device='cpu', n_perm=0).fit(X[:100], y[:100]).predict_proba(X[100:]).shape)"

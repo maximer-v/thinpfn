@@ -1,0 +1,24 @@
+ThinPFN probability quality on the validation split (3 context seeds, query <= 4000 rows, no recalibration), 2026-11-09
+
+mean over books of each metric, by context size and model (lower is better for ece, brier, log_loss; higher for the rest)
+
+    n model        auc      ks   brier   skill     ece  logloss  mean_p    prev
+  200 thinpfn   0.6993  0.3147  0.1213 +0.0883  0.0250   0.3893  0.1751  0.1693
+  200 logit     0.6596  0.2569  0.1352 -0.0225  0.0675   0.4563  0.1802  0.1693
+  200 xgb       0.6612  0.2589  0.1225 +0.0741  0.0372   0.3954  0.1718  0.1693
+  200 tabpfn    0.6927  0.3208  0.1218 +0.0725  0.0318   0.3928  0.1703  0.1693
+
+  500 thinpfn   0.7148  0.3394  0.1189 +0.1044  0.0229   0.3813  0.1743  0.1693
+  500 logit     0.6754  0.2851  0.1269 +0.0322  0.0428   0.4154  0.1755  0.1693
+  500 xgb       0.6818  0.2969  0.1193 +0.0951  0.0284   0.3840  0.1696  0.1693
+  500 tabpfn    0.7192  0.3508  0.1175 +0.1131  0.0293   0.3783  0.1645  0.1693
+
+ 1000 thinpfn   0.7307  0.3651  0.1168 +0.1193  0.0229   0.3749  0.1749  0.1693
+ 1000 logit     0.6900  0.3073  0.1227 +0.0712  0.0322   0.3999  0.1756  0.1693
+ 1000 xgb       0.7091  0.3402  0.1161 +0.1195  0.0240   0.3744  0.1715  0.1693
+ 1000 tabpfn    0.7335  0.3730  0.1149 +0.1275  0.0273   0.3708  0.1640  0.1693
+
+books where the model is worse than the base-rate forecast (Brier skill < 0), by n:
+  n=200: thinpfn 0/10; logit 6/10; xgb 4/10; tabpfn 2/10
+  n=500: thinpfn 0/10; logit 4/10; xgb 0/10; tabpfn 0/10
+  n=1000: thinpfn 0/10; logit 1/10; xgb 0/10; tabpfn 0/10

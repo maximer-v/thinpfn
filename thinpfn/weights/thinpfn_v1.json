@@ -1,0 +1,45 @@
+{
+ "name": "thinpfn_v1",
+ "config": {
+  "d_col": 96,
+  "col_inducing": 64,
+  "col_blocks": 0,
+  "col_heads": 4,
+  "row_layers": 0,
+  "row_heads": 4,
+  "n_cls": 4,
+  "d_icl": 512,
+  "icl_layers": 12,
+  "icl_heads": 8,
+  "ff_mult": 2,
+  "n_think": 24,
+  "max_features": 64,
+  "dropout": 0.0,
+  "n_classes": 2,
+  "residual_decay": 0.95,
+  "zero_init_pooled": true,
+  "n_tags": 48,
+  "raw_skip": true
+ },
+ "dtype": "float16",
+ "params": 25604050,
+ "averaged_checkpoints": [
+  "step013500.pt",
+  "step014000.pt",
+  "step014500.pt",
+  "step015000.pt",
+  "step015500.pt",
+  "step016000.pt"
+ ],
+ "training": {
+  "prior": "default mixture (mlp_scm 0.40, tree_scm 0.20, credit_ledger 0.30, mlp_scm_drift 0.07, tree_scm_drift 0.03)",
+  "tables": 1024000,
+  "steps": 16000,
+  "tables_per_step": 64,
+  "rows_per_table": "256-1024",
+  "optimizer": "AdamW lr 5e-4, 400 warmup, cosine, wd 0.01, clip 1.0",
+  "precision": "bf16 autocast",
+  "categorical_flags": false,
+  "hardware": "one NVIDIA GB10 (Grace Blackwell), about 6 hours"
+ }
+}

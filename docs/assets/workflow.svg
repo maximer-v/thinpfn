@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="470" viewBox="0 0 1240 470" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a8984"/>
+    </marker>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#0b0b0b" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+  <rect width="1240" height="470" fill="#fcfcfb"/>
+
+  <!-- stage 1: synthetic prior -->
+  <g transform="translate(30,60)">
+    <rect width="265" height="330" rx="14" fill="#ffffff" stroke="#e8e7e3" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="265" height="6" rx="3" fill="#eda100"/>
+    <text x="20" y="40" font-size="12" fill="#8a8984" letter-spacing="1.5">1 · PRIOR</text>
+    <text x="20" y="66" font-size="18" font-weight="600" fill="#0b0b0b">Synthetic tables</text>
+    <text x="20" y="100" font-size="13" fill="#52514e">Structural causal priors</text>
+    <text x="32" y="120" font-size="12" fill="#52514e">random MLPs and tree ensembles</text>
+    <text x="32" y="138" font-size="12" fill="#52514e">over sampled causal graphs</text>
+    <text x="20" y="168" font-size="13" fill="#52514e">Credit ledger simulator</text>
+    <text x="32" y="188" font-size="12" fill="#52514e">Markov delinquency chain,</text>
+    <text x="32" y="206" font-size="12" fill="#52514e">bureau and application blocks</text>
+    <text x="20" y="236" font-size="13" fill="#52514e">Drift wrapper</text>
+    <text x="32" y="256" font-size="12" fill="#52514e">a cohort index moves the generator</text>
+    <text x="20" y="290" font-size="12" fill="#52514e">256 to 1,024 rows · up to 64 columns</text>
+    <text x="20" y="308" font-size="12" fill="#52514e">NaN, categoricals, label noise filter</text>
+  </g>
+
+  <!-- stage 2: pre-training -->
+  <g transform="translate(345,60)">
+    <rect width="265" height="330" rx="14" fill="#ffffff" stroke="#e8e7e3" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="265" height="6" rx="3" fill="#2a78d6"/>
+    <text x="20" y="40" font-size="12" fill="#8a8984" letter-spacing="1.5">2 · PRE-TRAINING</text>
+    <text x="20" y="66" font-size="18" font-weight="600" fill="#0b0b0b">ThinPFN network</text>
+    <text x="20" y="100" font-size="13" fill="#52514e">Row tokens from a linear map of</text>
+    <text x="20" y="118" font-size="13" fill="#52514e">the standardised feature vector</text>
+    <text x="20" y="148" font-size="13" fill="#52514e">12 transformer layers, width 512</text>
+    <text x="20" y="166" font-size="13" fill="#52514e">context rows attend to each other,</text>
+    <text x="20" y="184" font-size="13" fill="#52514e">query rows attend to the context</text>
+    <text x="20" y="214" font-size="13" fill="#52514e">24 learned thinking rows</text>
+    <text x="20" y="250" font-size="12" fill="#52514e">25.6M parameters · 1.02M tables</text>
+    <text x="20" y="268" font-size="12" fill="#52514e">16,000 steps · about 6 hours</text>
+    <text x="20" y="286" font-size="12" fill="#52514e">on one desktop GPU</text>
+    <text x="20" y="310" font-size="12" fill="#52514e">loss: cross-entropy on query rows</text>
+  </g>
+
+  <!-- stage 3: inference -->
+  <g transform="translate(660,60)">
+    <rect width="265" height="330" rx="14" fill="#ffffff" stroke="#e8e7e3" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="265" height="6" rx="3" fill="#1baf7a"/>
+    <text x="20" y="40" font-size="12" fill="#8a8984" letter-spacing="1.5">3 · INFERENCE</text>
+    <text x="20" y="66" font-size="18" font-weight="600" fill="#0b0b0b">One forward pass</text>
+    <text x="20" y="100" font-size="13" fill="#52514e">Your labelled rows are the context</text>
+    <text x="20" y="118" font-size="13" fill="#52514e">(200 to a few thousand)</text>
+    <text x="20" y="148" font-size="13" fill="#52514e">Quantile-normal inputs fitted</text>
+    <text x="20" y="166" font-size="13" fill="#52514e">on the context</text>
+    <text x="20" y="196" font-size="13" fill="#52514e">Average over 8 column orders</text>
+    <text x="20" y="230" font-size="13" fill="#52514e">No gradient steps, no tuning,</text>
+    <text x="20" y="248" font-size="13" fill="#52514e">scores in under a second</text>
+    <rect x="20" y="276" width="225" height="36" rx="8" fill="#eef4fc"/>
+    <text x="32" y="299" font-size="12" font-family="ui-monospace, Menlo, monospace" fill="#1d5fb0">ThinPFNClassifier().fit(X, y)</text>
+  </g>
+
+  <!-- stage 4: validation -->
+  <g transform="translate(975,60)">
+    <rect width="235" height="330" rx="14" fill="#ffffff" stroke="#e8e7e3" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="235" height="6" rx="3" fill="#eb6834"/>
+    <text x="20" y="40" font-size="12" fill="#8a8984" letter-spacing="1.5">4 · VALIDATION</text>
+    <text x="20" y="66" font-size="18" font-weight="600" fill="#0b0b0b">Ten credit books</text>
+    <text x="20" y="100" font-size="13" fill="#52514e">Public portfolios from</text>
+    <text x="20" y="118" font-size="13" fill="#52514e">Taiwan, US, India, China</text>
+    <text x="20" y="148" font-size="13" fill="#52514e">Sealed test split, read once</text>
+    <text x="20" y="178" font-size="13" fill="#52514e">Against logistic regression,</text>
+    <text x="20" y="196" font-size="13" fill="#52514e">tuned XGBoost, TabPFN v2</text>
+    <text x="20" y="226" font-size="13" fill="#52514e">Paired bootstrap intervals</text>
+    <text x="20" y="244" font-size="13" fill="#52514e">on every cell</text>
+    <text x="20" y="282" font-size="12" fill="#52514e">n = 200 / 500 / 1,000 context rows</text>
+    <text x="20" y="300" font-size="12" fill="#52514e">three context seeds per cell</text>
+  </g>
+
+  <!-- arrows -->
+  <line x1="297" y1="225" x2="341" y2="225" stroke="#8a8984" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <line x1="612" y1="225" x2="656" y2="225" stroke="#8a8984" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <line x1="927" y1="225" x2="971" y2="225" stroke="#8a8984" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- footer -->
+  <text x="30" y="430" font-size="12" fill="#8a8984">No real data enters pre-training. The prior is synthetic; real portfolios are used only to validate, with the test split sealed until the model was frozen.</text>
+  <text x="30" y="450" font-size="12" fill="#8a8984">Weights, code, benchmark and split manifests are released; raw data is rebuilt from its public sources by the preparation script.</text>
+</svg>

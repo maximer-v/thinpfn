@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+title: "ThinPFN: a prior-fitted network for small-sample credit scoring"
+message: "If you use this software or the benchmark, please cite it as below."
+type: software
+authors:
+  - family-names: Mancilla Montero
+    given-names: Javier
+    affiliation: SquareOne Labs
+version: 1.0.0
+date-released: 2026-11-09
+license: CC-BY-NC-4.0
+repository-code: https://github.com/maximer-v/thinpfn

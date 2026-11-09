@@ -12,6 +12,8 @@
   <img alt="PyTorch" src="https://img.shields.io/badge/pytorch-2.2%2B-eb6834">
   <img alt="Parameters" src="https://img.shields.io/badge/parameters-25.6M-1baf7a">
   <img alt="Weights" src="https://img.shields.io/badge/weights-51%20MB%20fp16-eda100">
+  <a href="https://github.com/maximer-v/thinpfn/actions/workflows/tests.yml"><img alt="tests" src="https://github.com/maximer-v/thinpfn/actions/workflows/tests.yml/badge.svg"></a>
+  <a href="https://github.com/maximer-v/thinpfn/releases"><img alt="Release" src="https://img.shields.io/github/v/release/maximer-v/thinpfn?color=2a78d6"></a>
 </p>
 
 ThinPFN is a prior-fitted network: a transformer pre-trained on about a million synthetic tables so that, at use time, it
@@ -41,6 +43,7 @@ reproducible with [`thinpfn/train.py`](thinpfn/train.py); a user never needs to 
 
 - [Why this exists](#why-this-exists)
 - [Results on the sealed test](#results-on-the-sealed-test)
+- [Are the scores usable as probabilities?](#are-the-scores-usable-as-probabilities)
 - [Install and use](#install-and-use)
 - [How it works](#how-it-works)
 - [Reproduce the benchmark](#reproduce-the-benchmark)
@@ -103,7 +106,66 @@ cells inflate the count. Excluding TVS, ThinPFN is ahead of XGBoost in 20 of 27 
 behind), with mean differences of +0.019, +0.009 and +0.008. And "tuned" means tuned on a held-out slice of the same
 small context, which is the honest setting for the regime but not the ceiling of boosted trees with all the data.
 
+## Are the scores usable as probabilities?
+
+A credit score is used as a probability of default, so ranking is half the question. Version 1.1 adds a probability
+study with the same contexts as the benchmark, scored on the **validation split** (the sealed test was read once, for
+the AUC claims above, and is not read again; the validation splits were also used during development to choose the
+inference recipe by AUC, so this is a descriptive study, not a second sealed test). No model is recalibrated: each one
+outputs whatever its 200 to 1,000 context rows produce.
+
+<p align="center"><img src="docs/assets/calibration.png" width="100%" alt="Reliability curve, calibration error and Brier skill on the validation splits"></p>
+
+| n | model | KS | Brier skill | calibration error (ECE) | books worse than the base rate |
+|---|---|---|---|---|---|
+| 200 | ThinPFN | 0.315 | **+0.088** | **0.025** | 0 of 10 |
+| 200 | TabPFN v2 | **0.321** | +0.073 | 0.032 | 2 of 10 |
+| 200 | XGBoost | 0.259 | +0.074 | 0.037 | 4 of 10 |
+| 200 | Logistic | 0.257 | −0.023 | 0.068 | 6 of 10 |
+| 500 | ThinPFN | 0.339 | +0.104 | **0.023** | 0 of 10 |
+| 500 | TabPFN v2 | **0.351** | **+0.113** | 0.029 | 0 of 10 |
+| 500 | XGBoost | 0.297 | +0.095 | 0.028 | 0 of 10 |
+| 500 | Logistic | 0.285 | +0.032 | 0.043 | 4 of 10 |
+| 1,000 | ThinPFN | 0.365 | +0.119 | **0.023** | 0 of 10 |
+| 1,000 | TabPFN v2 | **0.373** | **+0.128** | 0.027 | 0 of 10 |
+| 1,000 | XGBoost | 0.340 | +0.120 | 0.024 | 0 of 10 |
+| 1,000 | Logistic | 0.307 | +0.071 | 0.032 | 1 of 10 |
+
+Means over the ten books. KS is the largest gap between the score distributions of defaulters and non-defaulters. Brier
+skill is the improvement of the Brier score over always predicting the context's default rate (zero is no better than
+the base rate). ECE is the expected calibration error over ten equal-count bins.
+
+What the numbers say:
+
+- **The probabilities are usable as they come out.** ThinPFN's calibration error is the lowest of the four models at
+  every context size, lower than TabPFN v2 on nine of ten books at each n, and it is the only model that is never worse
+  than the base-rate forecast on any book, even with 200 rows.
+- **TabPFN v2 separates slightly better from n = 500.** It is ahead on mean KS at every n and on mean Brier skill at
+  n = 500 and 1,000. Most of that Brier gap is one book, US home equity (+0.34 against +0.45 at n = 500), the same
+  strong nonlinear book that carries the AUC losses; book by book, ThinPFN has the higher Brier skill in 20 of 30 cells.
+- **The level follows the context.** ThinPFN's mean prediction is within about one point of the observed default rate
+  on average (0.175 against 0.169), slightly high. Part of every model's calibration error here is not the model: on the
+  out-of-time books the default rate moves between the context period and the scored period (LendingClub: 17% predicted,
+  15% observed), and no model can see that from the context.
+- **These are means without intervals.** The differences in calibration error are small and were not tested for
+  significance.
+
+Two practical consequences. If the labelled rows you pass as context were sampled at a different default rate than the
+population you score (for example, oversampled defaulters), the probabilities follow the context, not the population,
+and need an intercept correction. And if you have enough rows to hold some out, the classifier is a regular
+scikit-learn estimator, so `CalibratedClassifierCV(ThinPFNClassifier(), method="sigmoid")` works as with any other model.
+Per-book numbers are in [benchmark/results/calibration.csv](benchmark/results/calibration.csv).
+
 ## Install and use
+
+To use the model, install it straight from GitHub; the weights ship inside the package:
+
+```bash
+pip install "git+https://github.com/maximer-v/thinpfn@v1.1.0"
+```
+
+To run the benchmark, the notebook or the pre-training, clone the repository (the split manifests, result files and
+scripts live outside the package):
 
 ```bash
 git clone https://github.com/maximer-v/thinpfn && cd thinpfn
@@ -112,8 +174,7 @@ pip install -e ".[benchmark]"    # adds xgboost, tabpfn, matplotlib for the benc
 ```
 
 The released weights (`thinpfn/weights/thinpfn_v1.safetensors`, 51 MB, fp16) ship in the repository and load on CPU or GPU.
-A GPU is not required. Measured on an 8-thread CPU: 1,000 context rows and 2,000 query rows take 5.7 s with the default
-8-permutation ensemble and 0.7 s with `n_perm=0`; on a desktop GPU the ensemble takes about a second.
+A GPU is not required.
 
 ```python
 import pandas as pd
@@ -138,6 +199,26 @@ What the front end does for you:
 
 `ThinPFNClassifier.decision_function` returns log-odds, `predict` thresholds them at zero. The model object itself is
 `thinpfn.load_pretrained()`; its `predict(X_ctx, y_ctx, X_query, ...)` is the lower-level entry point.
+
+### Latency
+
+Time of one `predict_proba` call (20 numeric features, median of three calls after a warm-up), measured with
+[benchmark/latency.py](benchmark/latency.py) on an Arm CPU limited to 8 threads and on one desktop GPU (NVIDIA GB10):
+
+| context rows | query rows | CPU, default (8 orders) | CPU, `n_perm=0` | GPU, default (8 orders) | GPU, `n_perm=0` |
+|---|---|---|---|---|---|
+| 200 | 1 | 0.24 s | 0.03 s | 0.03 s | 0.006 s |
+| 200 | 1,000 | 1.5 s | 0.18 s | 0.10 s | 0.016 s |
+| 1,000 | 1 | 1.0 s | 0.14 s | 0.09 s | 0.015 s |
+| 1,000 | 2,000 | 5.7 s | 0.75 s | 0.28 s | 0.04 s |
+| 4,000 | 4,000 | 29 s | 3.6 s | 1.2 s | 0.17 s |
+
+<p align="center"><img src="docs/assets/latency.png" width="70%" alt="Latency of one scoring call on CPU and GPU"></p>
+
+Every call reads the context again (nothing is cached between calls), so scoring one application costs about as much
+as the context alone: batch the queries when you can. The eight column orders multiply the cost by eight; `n_perm=0`
+gives a single pass, and gives up what the ensemble adds: 0.006 to 0.010 AUC in the inference study below (measured on
+the smaller development model).
 
 ### Notebook
 
@@ -184,7 +265,7 @@ by about one point on the ten-book mean (depth and training budget changed toget
 synthetic stream statistically resemble real books (discretised columns, label noise, realistic marginals) did not help
 at equal compute. The remaining deficit to TabPFN v2 is concentrated on books with strong, nonlinear signal. The
 development experiments behind these statements are summarised in the paper; the released result files are the sealed
-test, the inference study and the size comparison.
+test, the probability study, the latency table, the inference study and the size comparison.
 
 <p align="center"><img src="docs/assets/scale.png" width="78%" alt="Depth and compute at equal prior and inference"></p>
 
@@ -201,6 +282,8 @@ the installed package).
 python -m thinpfn.data.books prepare                 # all ten books into data/books/*.parquet
 python benchmark/run_benchmark.py                    # validation split, ThinPFN vs logistic / XGBoost / TabPFN v2
 python benchmark/run_benchmark.py --split test --sealed   # the sealed protocol (read the note below first)
+python benchmark/run_calibration.py                  # probability quality on the validation split (KS, Brier, ECE)
+python benchmark/latency.py                          # latency table, CPU and GPU if present (needs no data)
 python benchmark/make_figures.py                     # the figures in this README from benchmark/results
 ```
 
@@ -272,6 +355,10 @@ LendingClub public loan files via [OpenML 43729](https://www.openml.org/d/43729)
 - **Development selection.** The inference recipe and the model depth were chosen on validation splits that were read
   many times. The sealed test was read once; the significant wins over TabPFN v2 at n = 200 shrank from five books on
   validation to three on test, which is the expected size of that selection effect.
+- **Probabilities follow the context.** The predicted level is anchored on the default rate of the context rows. A
+  context sampled at a different rate than the scored population, or an out-of-time shift in the default rate, moves
+  the calibration and needs a correction outside the model. The probability study uses validation splits, not the
+  sealed test.
 - **One seed, one run.** The released weights are one pre-training run; the variance across pre-training seeds has
   not been measured.
 
@@ -286,7 +373,8 @@ LendingClub public loan files via [OpenML 43729](https://www.openml.org/d/43729)
 | Intended use | research and non-commercial scoring of small labelled tables, 200 to a few thousand rows, up to 64 features |
 | Not intended | commercial use (licence), automated decisions about people without human review and fairness assessment |
 | Evaluation | ten public credit books, sealed test, against logistic, XGBoost, TabPFN v2 (this README) |
-| Compute | about 6 GPU-hours on one desktop GPU |
+| Probability quality | no recalibration: mean calibration error 0.023 to 0.025, Brier skill +0.09 to +0.12 (validation splits) |
+| Compute | about 6 GPU-hours of pre-training on one desktop GPU; scoring runs on CPU (latency table above) |
 | Weights | `thinpfn/weights/thinpfn_v1.safetensors` (fp16), configuration in `thinpfn/weights/thinpfn_v1.json` |
 
 ## Citation and licence

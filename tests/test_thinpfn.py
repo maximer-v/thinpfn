@@ -108,3 +108,24 @@ def test_classifier_string_dtype_and_consistent_encoding():
     unseen = df[160:].copy(); unseen.loc[unseen.index[:5], "b"] = "w"      # unseen category becomes NaN, no error
     assert np.isfinite(clf.predict_proba(unseen)).all()
     with pytest.raises(ValueError): clf.predict_proba(df[160:].drop(columns=["c"]))
+
+
+def test_calibration_metrics():
+    from thinpfn import metrics
+    rng = np.random.default_rng(9); p = rng.uniform(0.02, 0.6, 20000); y = (rng.uniform(size=p.size) < p).astype(int); z = np.log(p / (1 - p))
+    good = metrics.calibration(y, z); shifted = metrics.calibration(y, z + 1.5)
+    assert good["ece"] < 0.02 and shifted["ece"] > 0.15 and good["brier"] < shifted["brier"]
+    assert abs(good["auc"] - shifted["auc"]) < 1e-12 and abs(good["ks"] - shifted["ks"]) < 1e-12      # rank metrics ignore the shift
+    assert 0 < good["brier_skill"] < 1 and abs(good["mean_pred"] - good["prevalence"]) < 0.02
+    assert abs(metrics.calibration(y, np.full(y.size, np.log(y.mean() / (1 - y.mean()))))["brier_skill"]) < 1e-9   # base-rate forecast has zero skill
+    mp, obs, cnt = metrics.reliability_bins(y, p, 10); assert len(mp) == 10 and cnt.sum() == y.size and np.all(np.diff(mp) > 0)
+
+
+def test_classifier_works_inside_sklearn_calibration_and_cv():
+    from sklearn.calibration import CalibratedClassifierCV
+    from sklearn.model_selection import cross_val_score
+    rng = np.random.default_rng(10); X = rng.standard_normal((240, 4)).astype(np.float32); y = (X[:, 0] + 0.5 * X[:, 1] > 0).astype(int)
+    base = ThinPFNClassifier(device="cpu", n_perm=0)
+    assert cross_val_score(base, X, y, cv=2, scoring="roc_auc").mean() > 0.85
+    cal = CalibratedClassifierCV(base, method="sigmoid", cv=2).fit(X[:180], y[:180]); p = cal.predict_proba(X[180:])
+    assert p.shape == (60, 2) and np.allclose(p.sum(1), 1)

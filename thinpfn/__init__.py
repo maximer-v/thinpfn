@@ -3,5 +3,5 @@ public credit portfolios. Scores a new table from a few hundred labelled rows in
 from .classifier import ThinPFNClassifier, load_pretrained
 from .model import PFNConfig, ThinPFN
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __all__ = ["ThinPFNClassifier", "load_pretrained", "ThinPFN", "PFNConfig"]

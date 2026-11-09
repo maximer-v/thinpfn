@@ -28,12 +28,13 @@ def spread(values: dict, gap: float) -> dict:
     return pos
 
 
-def save(fig, name, title=None):
+def save(fig, name, title=None, paper=True):
     ASSETS.mkdir(parents=True, exist_ok=True); PAPER.mkdir(parents=True, exist_ok=True)
     if title: fig.suptitle(title, x=0.01, y=1.03, ha="left", fontsize=13, color=INK, fontweight="semibold")
     fig.savefig(ASSETS / f"{name}.png", dpi=180, bbox_inches="tight")
     if title: fig.suptitle("")
-    fig.savefig(PAPER / f"{name}.pdf", bbox_inches="tight"); plt.close(fig)
+    if paper: fig.savefig(PAPER / f"{name}.pdf", bbox_inches="tight")
+    plt.close(fig)
 
 
 def fig_mean_auc(df):
@@ -119,7 +120,45 @@ def fig_scale():
     save(fig, "scale", "Same prior, same inference: depth and compute move the mean (validation splits)")
 
 
+def fig_calibration():
+    """Reliability curve at n = 500 (rows pooled over books and seeds) and the two summary metrics against n."""
+    c = pd.read_csv(RES / "calibration.csv"); b = pd.read_csv(RES / "calibration_bins.csv"); ns = sorted(c.n.unique()); order = ["thinpfn", "tabpfn", "xgb", "logit"]
+    fig, axes = plt.subplots(1, 3, figsize=(11.2, 3.9), gridspec_kw={"width_ratios": [1.15, 1, 1]})
+    ax = axes[0]; ticks = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5]; ax.plot([0.003, 0.9], [0.003, 0.9], color=INK2, lw=0.9, ls="--")
+    for k in order[::-1]:
+        g = b[(b.model == k) & (b.n == 500)].sort_values("bin"); ax.plot(g.mean_pred, g.observed.clip(lower=0.004), color=COLORS[k], lw=1.8, marker="o", ms=5, mec=SURFACE, mew=1.1)
+    ax.set_xscale("log"); ax.set_yscale("log"); ax.set_xticks(ticks); ax.set_yticks(ticks); ax.set_xticklabels([f"{t:.1%}" if t < 0.01 else f"{t:.0%}" for t in ticks]); ax.set_yticklabels([f"{t:.1%}" if t < 0.01 else f"{t:.0%}" for t in ticks]); ax.minorticks_off()
+    ax.set_xlim(0.004, 0.8); ax.set_ylim(0.004, 0.8); ax.set_xlabel("predicted default probability (decile mean)"); ax.set_ylabel("observed default rate"); ax.set_title("Reliability at n = 500", fontsize=10.5, color=INK, loc="left")
+    ax.annotate("perfect calibration", (0.012, 0.012), xytext=(8, -10), textcoords="offset points", ha="left", fontsize=8.5, color=INK2)
+    for ax, key, lab, title in [(axes[1], "ece", "expected calibration error", "Calibration error (lower is better)"), (axes[2], "brier_skill", "Brier skill", "Brier skill vs base rate (higher is better)")]:
+        for k in order[::-1]:
+            ax.plot(ns, [c[(c.n == n) & (c.model == k)][key].mean() for n in ns], color=COLORS[k], lw=2, marker="o", ms=6, mec=SURFACE, mew=1.5)
+        ax.set_xscale("log"); ax.set_xticks(ns); ax.set_xticklabels([str(n) for n in ns]); ax.minorticks_off(); ax.set_xlim(170, 1180); ax.set_xlabel("labelled rows in context (n)"); ax.set_ylabel(f"{lab}, ten-book mean")
+        ax.grid(axis="x", visible=False); ax.set_title(title, fontsize=10.5, color=INK, loc="left")
+    from matplotlib.lines import Line2D
+    fig.legend(handles=[Line2D([], [], color=COLORS[k], lw=2, marker="o", ms=6, mec=SURFACE, label=NAMES[k]) for k in order], loc="lower center", ncol=4, frameon=False, fontsize=9.5, bbox_to_anchor=(0.5, -0.07))
+    fig.tight_layout(w_pad=2.0); save(fig, "calibration", "Probability quality without recalibration (validation splits, ten books)")
+
+
+def fig_latency():
+    d = pd.read_csv(RES / "latency.csv"); d = d[d.n_perm == 8]; shapes = list(dict.fromkeys(zip(d["context"], d["query"]))); devs = [x for x in ["cpu", "cuda"] if x in set(d.device)]
+    fig, ax = plt.subplots(figsize=(7.6, 3.2)); fig.subplots_adjust(left=0.34, right=0.97); y = np.arange(len(shapes)); cols = {"cpu": "#6ea3e3", "cuda": COLORS["thinpfn"]}
+    for i, (nc, nq) in enumerate(shapes):
+        vals = {dv: float(d[(d.device == dv) & (d.context == nc) & (d["query"] == nq)].seconds.iloc[0]) for dv in devs}
+        if len(vals) == 2: ax.plot(list(vals.values()), [i, i], color="#a9c8ee", lw=2, solid_capstyle="round", zorder=1)
+        for dv, v in vals.items():
+            ax.plot(v, i, "o", color=cols[dv], ms=9, mec=SURFACE, mew=1.5, zorder=2); ax.annotate(f"{v:.2f} s" if v < 10 else f"{v:.0f} s", (v, i), xytext=(0, 9), textcoords="offset points", ha="center", fontsize=8.5, color=INK)
+    ax.set_xscale("log"); ax.set_xticks([0.01, 0.1, 1, 10]); ax.set_xticklabels(["0.01 s", "0.1 s", "1 s", "10 s"]); ax.minorticks_off(); ax.set_xlim(0.02, 45); ax.set_yticks(y); ax.set_yticklabels([f"{nc:,} context, {nq:,} quer{'y' if nq == 1 else 'ies'}" for nc, nq in shapes]); ax.invert_yaxis(); ax.set_ylim(len(shapes) - 0.5, -0.7)
+    ax.set_xlabel("time per predict_proba call, 8-permutation ensemble (log scale)"); ax.grid(axis="y", visible=False)
+    from matplotlib.lines import Line2D
+    names = {dv: str(d[d.device == dv].hardware.iloc[0]) + (" GPU" if dv == "cuda" else "") for dv in devs}
+    ax.legend(handles=[Line2D([], [], color=cols[dv], lw=0, marker="o", ms=8, mec=SURFACE, label=names[dv]) for dv in devs], loc="upper center", bbox_to_anchor=(0.5, -0.24), ncol=2, frameon=False, fontsize=9)
+    save(fig, "latency", "Latency of one scoring call", paper=False)   # the paper quotes the numbers in text
+
+
 if __name__ == "__main__":
     df = pd.read_csv(RES / "sealed_test.csv")
     fig_mean_auc(df); fig_forest(df, "tabpfn", 200); fig_forest(df, "xgb", 200); fig_grid(df); fig_training(); fig_inference(); fig_scale()
+    if (RES / "calibration.csv").exists(): fig_calibration()
+    if (RES / "latency.csv").exists(): fig_latency()
     print("figures written to", ASSETS, "and", PAPER)

@@ -6,7 +6,7 @@ authors:
   - family-names: Mancilla Montero
     given-names: Javier
     affiliation: SquareOne Labs
-version: 1.0.0
+version: 1.1.0
 date-released: 2026-11-09
 license: CC-BY-NC-4.0
 repository-code: https://github.com/maximer-v/thinpfn

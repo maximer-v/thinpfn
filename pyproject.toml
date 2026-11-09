@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "thinpfn"
-version = "1.0.0"
+version = "1.1.0"
 description = "A prior-fitted network for small-sample tabular classification, pretrained on synthetic tables and validated on public credit portfolios"
 readme = "README.md"
 requires-python = ">=3.10"
